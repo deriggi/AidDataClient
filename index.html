@@ -5,7 +5,8 @@
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-	<title>Bootstrap 101 Template</title>
+  <link rel="shortcut icon" href="http://dai.com/sites/all/themes/dai/favicon.ico" type="image/vnd.microsoft.icon" />
+	<title>DAI's AidData Explorer</title>
 
 	<link rel="stylesheet" href="css/cerulean.css">
 
@@ -36,14 +37,14 @@
         <div id='navwrapper'>
         <div class ="row"> 
          <div class="col-md-12">
-          <h3>Welcome to the country data explorer. Please peruse</h3>
+          <h3>Welcome to DAI's <a href="http://aiddata.org/">AidData</a> project explorer. </h3>
         </div><!-- /.col-lg-6 -->
       </div><!-- row-->
 
       <div class ="row"> 
        <div class="col-md-12">
         <div class="input-group">
-          <input type="text" class="form-control" id='destorgsearchfield' placeholder="Search for a country...">
+          <input type="text" class="form-control" id='destorgsearchfield' placeholder="Search for a country..." onkeyup="handlythis(event)">
           <span class="input-group-btn">
             <button class="btn btn-default" type="button" id='gobutton'>Go!</button>
           </span>

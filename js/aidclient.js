@@ -1,6 +1,7 @@
 
 
 function searchDestinationOrgs(searchTerm){
+	MapMaker.clearMarkers();
 	// Call http://api.aiddata.org/data/destination/organizations?term=Malawi
 	$.ajax({
 		type: 'GET',
@@ -118,7 +119,7 @@ var EventsSetup = (function(){
 	return{
 		doSetup: function(){
 			$('#gobutton').click(function handleSearchDestinationOrgs(){
-				MapMaker.clearMarkers()
+				
 				searchDestinationOrgs($('#destorgsearchfield').val())
 			});
 		}
@@ -202,7 +203,11 @@ var MapMaker = (function(){
 
 })();
 
-
+function handlythis(event) {
+    if (event.keyCode === 13) {
+        searchDestinationOrgs($('#destorgsearchfield').val());
+    }
+}
 
 $(document).ready(function(){
 	EventsSetup.doSetup();
