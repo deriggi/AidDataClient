@@ -107,6 +107,8 @@ var ResultsHandler = (function(){
 	var countryNameField = document.getElementById("resultcountry")
 	var iso3field = document.getElementById("iso3")
 	var projectcountfield = document.getElementById("projectcount")
+	var projcountline = document.getElementById("projcountline")
+
 	var timespan = '2010,2011,2012,2013,2014,2015'
 	return{
 		setOrgResponse: function(countryName){
@@ -116,12 +118,15 @@ var ResultsHandler = (function(){
 			iso3field.innerHTML = iso3
 		},
 		getReceiverData: function (receiverId){
+			projcountline.style.display = 'none'			
+
 			$.ajax({
 				type: 'GET',
 				url: 'http://api.aiddata.org/aid/receiver',
 				data : {ro:receiverId, y:timespan},
 				success:function(response){
-					projectcountfield.innerHTML = response.project_count + ' projects in '				
+					projectcountfield.innerHTML = response.project_count + ' '
+					projcountline.style.display = 'block'			
 				}
 			})
 		},
