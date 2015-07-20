@@ -1,4 +1,17 @@
+/**
+	@TODO click a marker: filter markers and highlight project in list
+		assign click handler to filter by clicked id
 
+	@TODO click a list item: filter markers and highlight project in list
+		assign click handler to filter by clicked id
+
+	now: 
+		create user table email, password, last login
+		token user id table
+		role table
+		user role
+
+**/
 
 function searchDestinationOrgs(searchTerm){
 	MapMaker.clearMarkers();
@@ -20,7 +33,7 @@ function searchDestinationOrgs(searchTerm){
 
 var ProjectDataHandler = (function(){
 	var projectObjs = [];
-
+	var selectedListItem;
 	return{
 
 		clearProjectTitleList: function(){
@@ -38,6 +51,18 @@ var ProjectDataHandler = (function(){
 				ProjectDataHandler.getProject(ids[i])
 			}
 		},
+
+		assignClickHandler: function(li, projId){
+			$(li).click(function(){
+				if($(selectedListItem)){
+					$(selectedListItem).css('background-color', '#fff').css('color', '#000')
+				}
+				MapMaker.filterMarkersOnProjectId(projId)
+				$(this).css('background-color', '#020614').css('color', '#fff')
+				selectedListItem = $(this)
+			});
+		},
+
 		getProject: function(id){
 			$.ajax({
 				type: 'GET',
@@ -61,10 +86,11 @@ var ProjectDataHandler = (function(){
 
 					projectObjs.push({'title':projTitle, 'providers':providers})
 					var li = document.createElement('li')
+					li.style.cursor = 'pointer'
 					li.className = "list-group-item";
 					li.innerHTML = projTitle
 					document.getElementById('projlist').appendChild(li)
-
+					ProjectDataHandler.assignClickHandler(li, id);
 					
 				}
 			});
@@ -121,6 +147,7 @@ var EventsSetup = (function(){
 			$('#gobutton').click(function handleSearchDestinationOrgs(){
 				
 				searchDestinationOrgs($('#destorgsearchfield').val())
+
 			});
 		}
 	}
@@ -135,7 +162,7 @@ var MapMaker = (function(){
 	var markers = new L.MarkerClusterGroup({spiderfyOnMaxZoom: true});
 
 	function assignClickHandler(theMarker, id){
-		theMarker.on('click', function(){alert(id)})
+		theMarker.on('click', function(){console.log("show data for project " + id)})
 	}
 
 	return{
@@ -154,12 +181,22 @@ var MapMaker = (function(){
 			
 		},
 
+		filterMarkersOnProjectId: function(projectId){
+			markers.clearLayers()
+			var markersToAdd = []
+
+			for ( var i in markerList) {
+				if(markerList[i].projId == projectId){
+					markersToAdd.push(markerList[i])
+				}
+			}
+			markers.addLayers(markersToAdd);
+		},
+
 		processProjectLocationData: function(response){
 			var projectIds = []
 			if (response.items && response.items.length>0){
 
-				document.getElementById('locationscount').innerHTML = response.locations_count + " locations mapped"
-				console.log('points response size is ' + response.items.length)
 
 				for (var i in response.items){
 					var lat = parseFloat(response.items[i].fields.loc_point.lat)
@@ -169,6 +206,7 @@ var MapMaker = (function(){
 					var theMarker = L.marker(ll);
 					markerList.push(theMarker)
 					var projId = response.items[i].fields.loc_project_id;
+					theMarker["projId"] = projId
 					assignClickHandler(theMarker, projId);
 
 					// make a set of project ids
@@ -178,6 +216,8 @@ var MapMaker = (function(){
 					// theMarker.on('click', function(){alert(response.items[i].fields.loc_project_id)})
 
 				}
+				document.getElementById('locationscount').innerHTML = response.locations_count + " locations found for " + projectIds.length + " projects"
+
 				markers.addLayers(markerList)
 
 				var bounds = L.latLngBounds(lls)
