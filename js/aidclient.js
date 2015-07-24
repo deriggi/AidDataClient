@@ -11,10 +11,12 @@
 		role table
 		user role
 
-**/
+		**/
 
-function searchDestinationOrgs(searchTerm){
-	MapMaker.clearMarkers();
+		function searchDestinationOrgs(searchTerm){
+			MapMaker.clearMarkers();
+			document.getElementById('daiprojhead').style.display = 'none'
+
 	// Call http://api.aiddata.org/data/destination/organizations?term=Malawi
 	$.ajax({
 		type: 'GET',
@@ -25,15 +27,92 @@ function searchDestinationOrgs(searchTerm){
 			ResultsHandler.setIso3(response.hits[0].iso3)
 			ResultsHandler.getReceiverData(response.hits[0].id)
 			ResultsHandler.getGisAidData(response.hits[0].id)
+
+			// time for tamis
+			var tamisData = TamisCollector.listProjects(response.hits[0].name)
+			// console.log(tamisData[0])
+
 		}
 	});
 }
 
 
+var TamisCollector = (function(){
+	
+	var tamisProjects = {}
+
+	return {
+
+		listProjects: function(country){
+			TamisCollector.clearProjectTitleList();
+
+			var countryProjects = TamisCollector.getProject(country)
+			document.getElementById('daiprojhead').style.display = 'block'
+			for (var i in countryProjects){
+				var li = document.createElement('li')
+				// li.style.cursor = 'pointer'
+				li.className = "list-group-item";
+				li.innerHTML = countryProjects[i].title
+				document.getElementById('daiprojlist').appendChild(li)
+
+			}			
+
+			
+		},
+
+		getProject: function(country){
+			return tamisProjects[country]
+		},
+
+		clearProjectTitleList: function(){
+			var listHead = document.getElementById('daiprojlist')
+			while(listHead.firstChild){
+				listHead.removeChild(listHead.firstChild);
+			}
+		},
+
+		getProjects : function(){
+			var tamisLocs = 'http://api.mapbox.com/v4/sdwebadmin.m635logb/features.json?access_token=pk.eyJ1Ijoic2R3ZWJhZG1pbiIsImEiOiJuamZzdElFIn0.nX_FpFsiExt542R1nkJWxg'
+			tamisProjects = {}
+			
+
+			$.ajax({
+				type: 'GET',
+				url:  tamisLocs,
+				success:function(response){
+
+					for (var i in response.features){
+
+						if (response.features[i].properties.Country){
+							var props = response.features[i].properties;
+
+							var country = props.Country;
+							var coordinates = response.features[i].geometry.coordinates
+							var title = props.Project
+							var donor = props.Donor
+							var endDate = props['End Date']
+
+							if ( !tamisProjects[country] ){
+								tamisProjects[country] = [];
+							}
+
+							tamisProjects[country].push({"country":country, "title":title, "donor":donor, "endDate": endDate, "coords":coordinates})
+
+						}
+					}
+				}
+			});
+		}
+	}
+
+
+})();
+
 
 var ProjectDataHandler = (function(){
 	var projectObjs = [];
 	var selectedListItem;
+	
 	return{
 
 		clearProjectTitleList: function(){
@@ -84,13 +163,14 @@ var ProjectDataHandler = (function(){
 						}
 					}
 
-					projectObjs.push({'title':projTitle, 'providers':providers})
+					projectObjs.push({'title':projTitle, 'providers':providers, 'shortDescription': response.short_description})
 					var li = document.createElement('li')
 					li.style.cursor = 'pointer'
 					li.className = "list-group-item";
 					li.innerHTML = projTitle
 					document.getElementById('projlist').appendChild(li)
 					ProjectDataHandler.assignClickHandler(li, id);
+					MapMaker.setPopupContent(id,'<b>' + projTitle + '</b><p>' +providers[0] + '</p>')
 					
 				}
 			});
@@ -139,9 +219,9 @@ var ResultsHandler = (function(){
 					var mappedProjIds = MapMaker.processProjectLocationData(response);
 					ProjectDataHandler.getAllProjects(mappedProjIds)
 
-			}	
-		});
-	}
+				}	
+			});
+		}
 	}
 })();
 
@@ -164,13 +244,28 @@ var MapMaker = (function(){
 	
 	var lls = []
 	var markerList = []
+	var markerMap = {}
 	var markers = new L.MarkerClusterGroup({spiderfyOnMaxZoom: true});
+	var popupContent = {}
 
 	function assignClickHandler(theMarker, id){
 		theMarker.on('click', function(){console.log("show data for project " + id)})
 	}
 
 	return{
+		/**
+			assign a content section to a popup
+		
+			**/
+			setPopupContent: function(projId, popupContent){
+				if(markerMap[projId]){
+					for (var i in markerMap[projId]){
+						markerMap[projId][i].getPopup().setContent(popupContent)
+					}
+				}
+			// markerMap[projId].getPopup().setContent(popupContent)
+		},
+
 		clearMarkers :function(){
 			if(lls.length > 0){
 				markers.clearLayers()
@@ -181,6 +276,7 @@ var MapMaker = (function(){
 				markerList.length = 0;
 				makerList = [];
 
+				markerMap = {}
 
 			}
 			
@@ -212,7 +308,15 @@ var MapMaker = (function(){
 					markerList.push(theMarker)
 					var projId = response.items[i].fields.loc_project_id;
 					theMarker["projId"] = projId
+
+
+					if (!markerMap[projId]){
+						markerMap[projId] = []
+					}
+					markerMap[projId].push(theMarker)
+					
 					assignClickHandler(theMarker, projId);
+					theMarker.bindPopup(" " + projId);
 
 					// make a set of project ids
 					if (projectIds.indexOf(projId) == -1){
@@ -221,10 +325,9 @@ var MapMaker = (function(){
 					// theMarker.on('click', function(){alert(response.items[i].fields.loc_project_id)})
 
 				}
-				document.getElementById('locationscount').innerHTML = response.locations_count + " locations found for " + projectIds.length + " projects"
+				document.getElementById('locationscount').innerHTML = "Non-DAI: " + response.locations_count + " locations found for " + projectIds.length + " projects"
 
 				markers.addLayers(markerList)
-
 				var bounds = L.latLngBounds(lls)
 				map.fitBounds(bounds);
 				map.addLayer(markers); 
@@ -249,12 +352,14 @@ var MapMaker = (function(){
 })();
 
 function handlythis(event) {
-    if (event.keyCode === 13) {
-        searchDestinationOrgs($('#destorgsearchfield').val());
-    }
+	if (event.keyCode === 13) {
+		searchDestinationOrgs($('#destorgsearchfield').val());
+	}
 }
 
 $(document).ready(function(){
 	EventsSetup.doSetup();
 	MapMaker.doSetup();
+	TamisCollector.getProjects();
+
 });
