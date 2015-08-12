@@ -188,6 +188,9 @@ var ResultsHandler = (function(){
 	var iso3field = document.getElementById("iso3")
 	var projectcountfield = document.getElementById("projectcount")
 	var projcountline = document.getElementById("projcountline")
+	var totalMoney = document.getElementById("totalmoney")
+	var totalMoneyLine = document.getElementById("totalmoneyline")
+
 
 	var timespan = '2010,2011,2012,2013,2014,2015'
 	return{
@@ -199,6 +202,7 @@ var ResultsHandler = (function(){
 		},
 		getReceiverData: function (receiverId){
 			projcountline.style.display = 'none'			
+			totalMoneyLine.style.display = 'none'			
 
 			$.ajax({
 				type: 'GET',
@@ -206,7 +210,11 @@ var ResultsHandler = (function(){
 				data : {ro:receiverId, y:timespan},
 				success:function(response){
 					projectcountfield.innerHTML = response.project_count + ' '
-					projcountline.style.display = 'block'			
+					projcountline.style.display = 'block'
+					totalMoneyLine.style.display = 'block'
+					if (response.stats.total){
+						totalMoney.innerHTML = response.stats.total 
+					}
 				}
 			})
 		},
